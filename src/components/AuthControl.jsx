@@ -38,6 +38,7 @@ export default function AuthControl() {
   return (
     <div className="auth-control">
       <button
+        id="sign-in"
         className={`btn auth-button${user ? ' signed-in' : ''}`}
         type="button"
         onClick={handleAuthAction}
@@ -48,6 +49,7 @@ export default function AuthControl() {
         <Icon name={user ? 'log-out' : 'log-in'} size={18} />
         <span>{loading ? 'Checking…' : busy ? 'Please wait' : user ? 'Sign out' : 'Sign in'}</span>
       </button>
+      {user && <p className="auth-session-label" role="status">Signed in · <strong>{user.displayName || user.email || 'your account'}</strong></p>}
       {!firebaseConfigured && <span className="auth-config-note">Firebase setup required</span>}
       {currentError && (
         <>

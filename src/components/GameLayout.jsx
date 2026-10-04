@@ -7,7 +7,7 @@ import { formatGameDate } from '../utilities/dates.js';
 export default function GameLayout() {
   const { gameId } = useParams();
   const game = data.games[gameId];
-  const { user } = useUserState();
+  const { user, loading } = useUserState();
 
   if (!game) return <Navigate to="/schedule" replace />;
   const location = data.locations[game.locationKey];
@@ -21,11 +21,11 @@ export default function GameLayout() {
         <p className="game-venue"><Icon name="map-pin" size={18} /> {location.name}</p>
       </header>
 
-      <nav className="game-tabs" aria-label="Game information">
+      <nav className={`game-tabs${user ? '' : ' guest-tabs'}${loading ? ' checking-session' : ''}`} aria-label="Game information">
         <NavLink to={`/game/${gameId}`} end className={({ isActive }) => `game-tab${isActive ? ' active' : ''}`}>
           <Icon name="map-pin" size={17} /> Venue
         </NavLink>
-        {user && (
+        {user ? (
           <>
             <NavLink to={`/game/${gameId}/messages`} className={({ isActive }) => `game-tab${isActive ? ' active' : ''}`}>
               <Icon name="message-circle" size={17} /> Messages
@@ -34,9 +34,19 @@ export default function GameLayout() {
               <Icon name="image-plus" size={17} /> Photos
             </NavLink>
           </>
+        ) : !loading && (
+          <>
+            <a className="game-tab game-tab-locked" href="#sign-in" aria-label="Sign in to unlock this game’s messages">
+              <Icon name="message-circle" size={17} /> Messages <small>Sign in</small>
+            </a>
+            <a className="game-tab game-tab-locked" href="#sign-in" aria-label="Sign in to unlock this game’s photos">
+              <Icon name="image-plus" size={17} /> Photos <small>Sign in</small>
+            </a>
+          </>
         )}
       </nav>
-      {!user && <p className="member-note">Sign in to view messages and photos for this game.</p>}
+      {loading && <p className="member-note" role="status">Checking your sign-in to unlock Messages and Photos…</p>}
+      {!loading && !user && <p className="member-note">Choose Messages or Photos, then tap Sign in in the header. This game will unlock automatically.</p>}
       <Outlet context={{ game, location, gameId }} />
     </section>
   );

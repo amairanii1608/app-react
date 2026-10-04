@@ -34,7 +34,7 @@ export default function Messages() {
       didInitialScrollRef.current = true;
       shouldScrollRef.current = false;
     }
-  }, [loading, messages.length]);
+  }, [loading, messages]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -47,7 +47,7 @@ export default function Messages() {
     try {
       await publishMessage(gameId, user, text);
       setText('');
-      setFeedback('Message posted.');
+      setFeedback(`Message posted to ${game.teams[0]} vs. ${game.teams[1]}.`);
       setFeedbackError(false);
     } catch (publishError) {
       shouldScrollRef.current = false;
@@ -62,7 +62,7 @@ export default function Messages() {
     <section className="community-section" aria-labelledby="messages-title">
       <div className="section-heading">
         <div>
-          <p className="game-context-label">{formatGameDate(game.date)} / {game.time}</p>
+          <p className="game-context-label">{game.teams[0]} vs. {game.teams[1]} / {formatGameDate(game.date)} / {game.time}</p>
           <h2 id="messages-title">Game messages</h2>
         </div>
         <span className="heading-mark"><Icon name="message-circle" size={20} /></span>

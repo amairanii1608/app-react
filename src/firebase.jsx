@@ -73,6 +73,7 @@ export function AuthProvider({ children }) {
       auth,
       (nextUser) => {
         setUser(nextUser);
+        setError(null);
         setLoading(false);
       },
       (nextError) => {

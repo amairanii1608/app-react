@@ -23,7 +23,7 @@ export default function Schedule() {
     <section className="schedule-section" aria-labelledby="schedule-title">
       <header className="page-heading">
         <h1 id="schedule-title">Game schedule</h1>
-        <p>Find each game’s time, teams, and venue.</p>
+        <p>Select a game to view its venue, messages, and photos. Sign in above to post or share pictures.</p>
       </header>
 
       <div className="schedule-filter">
@@ -52,7 +52,7 @@ export default function Schedule() {
               <div className="schedule-date"><Icon name="calendar-days" size={20} /><span>{formatGameDate(game.date)}</span></div>
               <Link className="schedule-match" to={`/game/${id}`} aria-label={`View ${game.teams[0]} versus ${game.teams[1]}, ${formatGameDate(game.date)}`}>
                 <strong>{game.teams[0]} <span>vs.</span> {game.teams[1]}</strong>
-                <small>View game <Icon name="arrow-right" size={17} /></small>
+                <small>Venue · Messages · Photos <Icon name="arrow-right" size={17} /></small>
               </Link>
               <div className="schedule-time"><Icon name="clock" size={19} />{game.time}</div>
               <a className="schedule-venue" href={location.mapUrl} target="_blank" rel="noreferrer" aria-label={`Get directions to ${location.name}`}>
