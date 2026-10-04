@@ -1,0 +1,69 @@
+{
+  "rules": {
+    "messages": {
+      "$gameId": {
+        ".read": "auth != null",
+        ".indexOn": ["timestamp"],
+        "$messageId": {
+          ".write": "auth != null && !data.exists() && newData.child('authorUid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['authorUid', 'author', 'text', 'timestamp'])",
+          "authorUid": { ".validate": "newData.isString() && newData.val() === auth.uid" },
+          "author": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80" },
+          "text": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500" },
+          "timestamp": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+    "pictures": {
+      "$gameId": {
+        ".read": "auth != null",
+        ".indexOn": ["timestamp"],
+        "$pictureId": {
+          ".write": "auth != null && !data.exists() && newData.child('authorUid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['authorUid', 'author', 'url', 'caption', 'timestamp'])",
+          "authorUid": { ".validate": "newData.isString() && newData.val() === auth.uid" },
+          "author": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80" },
+          "url": { ".validate": "newData.isString() && newData.val().length <= 2048 && newData.val().matches(/^https:\\/\\/res\\.cloudinary\\.com\\/.+$/)" },
+          "caption": { ".validate": "newData.isString() && newData.val().length <= 160" },
+          "timestamp": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+    "registrations": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$registrationId": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.child('parentUid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['season', 'firstName', 'lastName', 'address', 'city', 'zip', 'birthDate', 'gender', 'grade', 'parentName', 'phone', 'email', 'firstSchool', 'secondSchool', 'normalPositions', 'wantedPositions', 'hasUniform', 'jerseySize', 'shortsSize', 'parentSignature', 'signatureDate', 'consent', 'parentUid', 'timestamp']) && newData.child('firstSchool').val() !== newData.child('secondSchool').val() && (newData.child('hasUniform').val() === true || (newData.child('jerseySize').val().length > 0 && newData.child('shortsSize').val().length > 0))",
+          "season": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 24" },
+          "firstName": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80" },
+          "lastName": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80" },
+          "address": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 160" },
+          "city": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80" },
+          "zip": { ".validate": "newData.isString() && newData.val().matches(/^\\d{5}$/)" },
+          "birthDate": { ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)" },
+          "gender": { ".validate": "newData.val() === 'female' || newData.val() === 'male'" },
+          "grade": { ".validate": "newData.val() === 'Pre-School' || newData.val() === '1st' || newData.val() === '2nd' || newData.val() === '3rd' || newData.val() === '4th' || newData.val() === '5th'" },
+          "parentName": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120" },
+          "phone": { ".validate": "newData.isString() && newData.val().matches(/^[0-9()+. -]{7,24}$/)" },
+          "email": { ".validate": "newData.isString() && newData.val().matches(/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/) && newData.val().length <= 254" },
+          "firstSchool": { ".validate": "newData.val() === 'AJ Katzenmaier' || newData.val() === 'Marjorie P Hart' || newData.val() === 'Greenbay' || newData.val() === 'North Elementary' || newData.val() === 'Howard A Yeager' || newData.val() === 'South Elementary'" },
+          "secondSchool": { ".validate": "newData.val() === 'AJ Katzenmaier' || newData.val() === 'Marjorie P Hart' || newData.val() === 'Greenbay' || newData.val() === 'North Elementary' || newData.val() === 'Howard A Yeager' || newData.val() === 'South Elementary'" },
+          "normalPositions": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "wantedPositions": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "hasUniform": { ".validate": "newData.isBoolean()" },
+          "jerseySize": { ".validate": "newData.isString() && (newData.val() === '' || newData.val() === 'Youth Small' || newData.val() === 'Youth Medium' || newData.val() === 'Youth Large' || newData.val() === 'Small' || newData.val() === 'Medium' || newData.val() === 'Large' || newData.val() === 'Extra-Large')" },
+          "shortsSize": { ".validate": "newData.isString() && (newData.val() === '' || newData.val() === 'Youth Small' || newData.val() === 'Youth Medium' || newData.val() === 'Youth Large' || newData.val() === 'Small' || newData.val() === 'Medium' || newData.val() === 'Large' || newData.val() === 'Extra-Large')" },
+          "parentSignature": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120" },
+          "signatureDate": { ".validate": "newData.isString() && newData.val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)" },
+          "consent": { ".validate": "newData.isBoolean() && newData.val() === true" },
+          "parentUid": { ".validate": "newData.isString() && newData.val() === auth.uid" },
+          "timestamp": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000" },
+          "$other": { ".validate": false }
+        }
+      }
+    }
+  }
+}

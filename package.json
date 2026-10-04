@@ -1,0 +1,32 @@
+{
+  "name": "nysl-mobile-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "vite --host 0.0.0.0",
+    "start:emulator": "vite --mode emulator --host 0.0.0.0",
+    "build": "vite build",
+    "build:github": "vite build --mode github && node --input-type=module -e \"import { copyFileSync } from 'node:fs'; copyFileSync('dist/index.html', 'dist/404.html')\"",
+    "build:emulator": "vite build --mode emulator",
+    "preview": "vite preview --host 0.0.0.0",
+    "emulate": "firebase emulators:start --only hosting,auth,database --project demo-nysl",
+    "deploy": "firebase deploy --only hosting"
+  },
+  "dependencies": {
+    "@firebase/app": "^0.16.2",
+    "@firebase/auth": "^1.13.6",
+    "@firebase/database": "^1.1.5",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "bootstrap": "^5.3.8",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "firebase-tools": "^15.32.1",
+    "vite": "^7.1.7",
+    "vite-plugin-pwa": "^1.0.3"
+  }
+}

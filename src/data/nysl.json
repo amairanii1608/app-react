@@ -1,0 +1,214 @@
+{
+  "contact": {
+    "email": "nysl@chisoccer.org",
+    "replyNote": "We will reply as soon as we can."
+  },
+  "announcements": [
+    {
+      "date": "Aug 4",
+      "title": "NYSL fundraiser"
+    },
+    {
+      "date": "Aug 16",
+      "title": "Season kickoff: meet the teams"
+    },
+    {
+      "date": "Sep 1",
+      "title": "First game of the season",
+      "detail": "See the game schedule for details."
+    }
+  ],
+  "locations": {
+    "Katzenmaier": {
+      "name": "AJ Katzenmaier Elementary",
+      "address": "24 W. Walton St., Chicago, IL 60610",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=24%20W.%20Walton%20St.%2C%20Chicago%2C%20IL%2060610",
+      "mapEmbedUrl": "https://www.google.com/maps?q=24%20W.%20Walton%20St.%2C%20Chicago%2C%20IL%2060610&output=embed"
+    },
+    "Greenbay": {
+      "name": "Greenbay Elementary",
+      "address": "1734 N. Orleans St., Chicago, IL 60614",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=1734%20N.%20Orleans%20St.%2C%20Chicago%2C%20IL%2060614",
+      "mapEmbedUrl": "https://www.google.com/maps?q=1734%20N.%20Orleans%20St.%2C%20Chicago%2C%20IL%2060614&output=embed"
+    },
+    "Yeager": {
+      "name": "Howard A Yeager Elementary",
+      "address": "2245 N. Southport Ave., Chicago, IL 60614",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=2245%20N.%20Southport%20Ave.%2C%20Chicago%2C%20IL%2060614",
+      "mapEmbedUrl": "https://www.google.com/maps?q=2245%20N.%20Southport%20Ave.%2C%20Chicago%2C%20IL%2060614&output=embed"
+    },
+    "Hart": {
+      "name": "Marjorie P Hart Elementary",
+      "address": "2625 N. Orchard St., Chicago, IL 60614",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=2625%20N.%20Orchard%20St.%2C%20Chicago%2C%20IL%2060614",
+      "mapEmbedUrl": "https://www.google.com/maps?q=2625%20N.%20Orchard%20St.%2C%20Chicago%2C%20IL%2060614&output=embed"
+    },
+    "North": {
+      "name": "North Elementary",
+      "address": "1409 N. Ogden Ave., Chicago, IL 60610",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=1409%20N.%20Ogden%20Ave.%2C%20Chicago%2C%20IL%2060610",
+      "mapEmbedUrl": "https://www.google.com/maps?q=1409%20N.%20Ogden%20Ave.%2C%20Chicago%2C%20IL%2060610&output=embed"
+    },
+    "South": {
+      "name": "South Elementary",
+      "address": "2101 N. Fremont St., Chicago, IL 60614",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=2101%20N.%20Fremont%20St.%2C%20Chicago%2C%20IL%2060614",
+      "mapEmbedUrl": "https://www.google.com/maps?q=2101%20N.%20Fremont%20St.%2C%20Chicago%2C%20IL%2060614&output=embed"
+    }
+  },
+  "games": {
+    "sep_01_1": {
+      "date": "09/01",
+      "time": "9:30 a.m.",
+      "teams": [
+        "U1",
+        "U4"
+      ],
+      "locationKey": "Katzenmaier"
+    },
+    "sep_01_2": {
+      "date": "09/01",
+      "time": "1:00 p.m.",
+      "teams": [
+        "U3",
+        "U2"
+      ],
+      "locationKey": "Greenbay"
+    },
+    "sep_08_1": {
+      "date": "09/08",
+      "time": "9:30 a.m.",
+      "teams": [
+        "U5",
+        "U6"
+      ],
+      "locationKey": "Yeager"
+    },
+    "sep_08_2": {
+      "date": "09/08",
+      "time": "1:00 p.m.",
+      "teams": [
+        "U6",
+        "U1"
+      ],
+      "locationKey": "Hart"
+    },
+    "sep_15_1": {
+      "date": "09/15",
+      "time": "9:30 a.m.",
+      "teams": [
+        "U2",
+        "U4"
+      ],
+      "locationKey": "North"
+    },
+    "sep_15_2": {
+      "date": "09/15",
+      "time": "1:00 p.m.",
+      "teams": [
+        "U3",
+        "U5"
+      ],
+      "locationKey": "Katzenmaier"
+    },
+    "sep_22_1": {
+      "date": "09/22",
+      "time": "9:30 a.m.",
+      "teams": [
+        "U1",
+        "U3"
+      ],
+      "locationKey": "South"
+    },
+    "sep_22_2": {
+      "date": "09/22",
+      "time": "1:00 p.m.",
+      "teams": [
+        "U2",
+        "U6"
+      ],
+      "locationKey": "Yeager"
+    },
+    "sep_29_1": {
+      "date": "09/29",
+      "time": "9:30 a.m.",
+      "teams": [
+        "U4",
+        "U5"
+      ],
+      "locationKey": "Greenbay"
+    },
+    "oct_06_1": {
+      "date": "10/06",
+      "time": "9:30 a.m.",
+      "teams": [
+        "U2",
+        "U5"
+      ],
+      "locationKey": "Hart"
+    },
+    "oct_06_2": {
+      "date": "10/06",
+      "time": "1:00 p.m.",
+      "teams": [
+        "U1",
+        "U6"
+      ],
+      "locationKey": "South"
+    },
+    "oct_13_1": {
+      "date": "10/13",
+      "time": "9:30 a.m.",
+      "teams": [
+        "U3",
+        "U4"
+      ],
+      "locationKey": "Yeager"
+    },
+    "oct_13_2": {
+      "date": "10/13",
+      "time": "1:00 p.m.",
+      "teams": [
+        "U5",
+        "U1"
+      ],
+      "locationKey": "Greenbay"
+    },
+    "oct_20_1": {
+      "date": "10/20",
+      "time": "9:30 a.m.",
+      "teams": [
+        "U6",
+        "U3"
+      ],
+      "locationKey": "North"
+    },
+    "oct_20_2": {
+      "date": "10/20",
+      "time": "1:00 p.m.",
+      "teams": [
+        "U2",
+        "U4"
+      ],
+      "locationKey": "Hart"
+    },
+    "oct_27_1": {
+      "date": "10/27",
+      "time": "9:30 a.m.",
+      "teams": [
+        "U3",
+        "U1"
+      ],
+      "locationKey": "Katzenmaier"
+    },
+    "oct_27_2": {
+      "date": "10/27",
+      "time": "1:00 p.m.",
+      "teams": [
+        "U5",
+        "U6"
+      ],
+      "locationKey": "Yeager"
+    }
+  }
+}
