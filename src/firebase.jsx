@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { getApp, getApps, initializeApp } from '@firebase/app';
 import {
   GoogleAuthProvider,
+  browserLocalPersistence,
   connectAuthEmulator,
   getAuth,
   getRedirectResult,
@@ -9,6 +10,7 @@ import {
   signInWithPopup,
   signInWithRedirect,
   signOut,
+  setPersistence,
 } from '@firebase/auth';
 import {
   connectDatabaseEmulator,
@@ -20,6 +22,8 @@ import {
 } from '@firebase/database';
 
 const useEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true';
+const IDLE_LIMIT = 30 * 60 * 1000;
+const ACTIVITY_KEY = 'nysl:last-activity';
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -61,6 +65,8 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(firebaseConfigured);
   const [error, setError] = useState(null);
+  const [sessionNotice, setSessionNotice] = useState('');
+  const clearAuthError = useCallback(() => setError(null), []);
 
   useEffect(() => {
     if (!auth) {
@@ -74,6 +80,7 @@ export function AuthProvider({ children }) {
       (nextUser) => {
         setUser(nextUser);
         setError(null);
+        if (nextUser) setSessionNotice('');
         setLoading(false);
       },
       (nextError) => {
@@ -83,8 +90,36 @@ export function AuthProvider({ children }) {
     );
   }, []);
 
+  useEffect(() => {
+    if (!auth || !user) return undefined;
+    let lastActivity = Date.now();
+    let lastWrite = 0;
+    const readActivity = () => Number(localStorage.getItem(ACTIVITY_KEY)) || lastActivity;
+    const markActivity = () => {
+      const now = Date.now();
+      lastActivity = now;
+      if (now - lastWrite > 15000) {
+        localStorage.setItem(ACTIVITY_KEY, String(now));
+        lastWrite = now;
+      }
+    };
+    const checkIdle = () => {
+      if (Date.now() - readActivity() < IDLE_LIMIT) return;
+      localStorage.removeItem(ACTIVITY_KEY);
+      setSessionNotice('Your session ended after 30 minutes of inactivity. Sign in to continue.');
+      signOut(auth).catch(setError);
+    };
+    localStorage.setItem(ACTIVITY_KEY, String(lastActivity));
+    const timer = window.setInterval(checkIdle, 30000);
+    ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach((event) => window.addEventListener(event, markActivity, { passive: true }));
+    return () => {
+      window.clearInterval(timer);
+      ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach((event) => window.removeEventListener(event, markActivity));
+    };
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, error }}>
+    <AuthContext.Provider value={{ user, loading, error, sessionNotice, clearAuthError }}>
       {children}
     </AuthContext.Provider>
   );
@@ -119,8 +154,8 @@ export function useRealtimeList(listQuery, retryKey = 0) {
 export async function signInWithGoogle() {
   if (!auth) throw new Error('Configure Firebase to enable sign-in.');
 
+  await setPersistence(auth, browserLocalPersistence);
   const provider = new GoogleAuthProvider();
-  provider.addScope('email');
   const isMobile = window.matchMedia('(max-width: 700px)').matches
     || window.matchMedia('(display-mode: standalone)').matches
     || navigator.standalone === true;
@@ -131,6 +166,7 @@ export async function signInWithGoogle() {
 
 export function signOutUser() {
   if (!auth) return Promise.resolve();
+  localStorage.removeItem(ACTIVITY_KEY);
   return signOut(auth);
 }
 
@@ -168,7 +204,7 @@ export async function uploadPicture(file) {
   );
   const result = await response.json();
   if (!response.ok || typeof result.secure_url !== 'string') {
-    throw new Error(result.error?.message || 'Cloudinary could not upload the image. Try again.');
+    throw new Error('Cloudinary could not upload the image. Check the image and try again.');
   }
 
   return result.secure_url;
@@ -176,7 +212,9 @@ export async function uploadPicture(file) {
 
 export async function publishPicture(gameId, user, picture) {
   if (!database || !user) throw new Error('Sign in to post photos.');
-  if (!picture?.url?.startsWith('https://res.cloudinary.com/')) {
+  let pictureUrl;
+  try { pictureUrl = new URL(picture?.url); } catch { pictureUrl = null; }
+  if (!pictureUrl || pictureUrl.protocol !== 'https:' || pictureUrl.hostname !== 'res.cloudinary.com' || !pictureUrl.pathname.startsWith(`/${cloudinaryConfig.cloudName}/image/upload/`)) {
     throw new Error('A valid Cloudinary URL was not found.');
   }
 

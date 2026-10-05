@@ -21,7 +21,7 @@ export default function GameLayout() {
         <p className="game-venue"><Icon name="map-pin" size={18} /> {location.name}</p>
       </header>
 
-      <nav className={`game-tabs${user ? '' : ' guest-tabs'}${loading ? ' checking-session' : ''}`} aria-label="Game information">
+      <nav className={`game-tabs${user ? '' : ' guest-tabs'}`} aria-label="Game information">
         <NavLink to={`/game/${gameId}`} end className={({ isActive }) => `game-tab${isActive ? ' active' : ''}`}>
           <Icon name="map-pin" size={17} /> Venue
         </NavLink>
@@ -34,19 +34,19 @@ export default function GameLayout() {
               <Icon name="image-plus" size={17} /> Photos
             </NavLink>
           </>
-        ) : !loading && (
+        ) : (
           <>
-            <a className="game-tab game-tab-locked" href="#sign-in" aria-label="Sign in to unlock this game’s messages">
-              <Icon name="message-circle" size={17} /> Messages <small>Sign in</small>
-            </a>
-            <a className="game-tab game-tab-locked" href="#sign-in" aria-label="Sign in to unlock this game’s photos">
-              <Icon name="image-plus" size={17} /> Photos <small>Sign in</small>
-            </a>
+            <NavLink to={`/game/${gameId}/messages`} className={({ isActive }) => `game-tab game-tab-locked${isActive ? ' active' : ''}`}>
+              <Icon name="message-circle" size={17} /> Messages <small>Read</small>
+            </NavLink>
+            <NavLink to={`/game/${gameId}/photos`} className={({ isActive }) => `game-tab game-tab-locked${isActive ? ' active' : ''}`}>
+              <Icon name="image-plus" size={17} /> Photos <small>Read</small>
+            </NavLink>
           </>
         )}
       </nav>
       {loading && <p className="member-note" role="status">Checking your sign-in to unlock Messages and Photos…</p>}
-      {!loading && !user && <p className="member-note">Choose Messages or Photos, then tap Sign in in the header. This game will unlock automatically.</p>}
+      {!loading && !user && <p className="member-note">Read messages and photos here. Sign in to add your own.</p>}
       <Outlet context={{ game, location, gameId }} />
     </section>
   );

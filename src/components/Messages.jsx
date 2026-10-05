@@ -17,10 +17,10 @@ export default function Messages() {
   const shouldScrollRef = useRef(false);
   const didInitialScrollRef = useRef(false);
   const messagesQuery = useMemo(() => (
-    database && user
+    database
       ? query(ref(database, `messages/${gameId}`), orderByChild('timestamp'), limitToLast(100))
       : null
-  ), [gameId, user]);
+  ), [gameId]);
   const [snapshots, loading, error] = useRealtimeList(messagesQuery, retryKey);
 
   const messages = useMemo(() => snapshots
@@ -51,7 +51,7 @@ export default function Messages() {
       setFeedbackError(false);
     } catch (publishError) {
       shouldScrollRef.current = false;
-      setFeedback(publishError.message || 'The message could not be posted. Try again.');
+      setFeedback('Your message could not be posted. Check your connection and try again.');
       setFeedbackError(true);
     } finally {
       setPosting(false);
@@ -99,7 +99,7 @@ export default function Messages() {
         </ol>
       </div>
 
-      <form className="message-form" onSubmit={handleSubmit}>
+      {user ? <form className="message-form" onSubmit={handleSubmit}>
         <label className="visually-hidden" htmlFor="message-input">Write a message for this game</label>
         <textarea
           id="message-input"
@@ -118,7 +118,10 @@ export default function Messages() {
           </button>
         </div>
         <p className="form-feedback" role={feedbackError ? 'alert' : 'status'} aria-live={feedbackError ? 'assertive' : 'polite'}>{feedback}</p>
-      </form>
+      </form> : <aside className="guest-post-prompt">
+        <p>Messages are visible to everyone. Sign in above to post your own.</p>
+        <a className="text-link" href="#sign-in">Go to Sign in <Icon name="arrow-right" size={16} /></a>
+      </aside>}
     </section>
   );
 }

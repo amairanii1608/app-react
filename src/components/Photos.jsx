@@ -21,10 +21,10 @@ export default function Photos() {
   const [retryKey, setRetryKey] = useState(0);
   const fileInputRef = useRef(null);
   const picturesQuery = useMemo(() => (
-    database && user
+    database
       ? query(ref(database, `pictures/${gameId}`), orderByChild('timestamp'), limitToLast(100))
       : null
-  ), [gameId, user]);
+  ), [gameId]);
   const [snapshots, loading, error] = useRealtimeList(picturesQuery, retryKey);
 
   const pictures = useMemo(() => snapshots
@@ -77,7 +77,7 @@ export default function Photos() {
     } catch (publishError) {
       setFeedback(uploadedUrl
         ? 'The photo reached Cloudinary but could not be saved to the gallery. Check your connection before trying again.'
-        : publishError.message || 'The photo could not be saved. Check your connection and try again.');
+        : 'The photo could not be uploaded. Check your connection and try again.');
       setFeedbackError(true);
     } finally {
       setPosting(false);
@@ -94,7 +94,7 @@ export default function Photos() {
         <span className="heading-mark"><Icon name="image-plus" size={20} /></span>
       </div>
 
-      <form className="photo-form" onSubmit={handleSubmit}>
+      {user ? <form className="photo-form" onSubmit={handleSubmit}>
         <div className="photo-form-heading">
           <div>
             <h3>Share a moment</h3>
@@ -150,7 +150,10 @@ export default function Photos() {
           </button>
         </div>
         {!cloudinaryConfigured && <p className="setup-note">Cloudinary is not configured. See the setup guide in the project folder.</p>}
-      </form>
+      </form> : <aside className="guest-post-prompt">
+        <p>Photos are visible to everyone. Sign in above to upload your own.</p>
+        <a className="text-link" href="#sign-in">Go to Sign in <Icon name="arrow-right" size={16} /></a>
+      </aside>}
 
       <div className="photo-gallery-heading">
         <h3>Gallery</h3>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { firebaseConfigured, signInWithGoogle, signOutUser, useUserState } from '../firebase.jsx';
 import Icon from './Icon.jsx';
 
@@ -13,14 +13,20 @@ function readableAuthError(error) {
     return 'Allow pop-ups and try again.';
   }
   if (error?.code === 'auth/popup-closed-by-user') return 'The sign-in window was closed.';
-  return error?.message || 'Sign-in could not be completed. Try again.';
+  return 'Sign-in could not be completed. Try again.';
 }
 
 export default function AuthControl() {
-  const { user, loading, error: stateError } = useUserState();
+  const { user, loading, error: stateError, sessionNotice, clearAuthError } = useUserState();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const currentError = error || stateError;
+  const firstName = user?.displayName?.trim().split(/\s+/)[0] || user?.email?.split('@')[0] || 'there';
+  useEffect(() => {
+    if (!currentError) return undefined;
+    const timeout = window.setTimeout(() => { setError(null); clearAuthError(); }, 3000);
+    return () => window.clearTimeout(timeout);
+  }, [currentError, clearAuthError]);
 
   async function handleAuthAction() {
     setBusy(true);
@@ -49,13 +55,11 @@ export default function AuthControl() {
         <Icon name={user ? 'log-out' : 'log-in'} size={18} />
         <span>{loading ? 'Checking…' : busy ? 'Please wait' : user ? 'Sign out' : 'Sign in'}</span>
       </button>
-      {user && <p className="auth-session-label" role="status">Signed in · <strong>{user.displayName || user.email || 'your account'}</strong></p>}
+      {user && <p className="auth-session-label" role="status"><strong>Welcome, {firstName}</strong><span>Signed in</span></p>}
       {!firebaseConfigured && <span className="auth-config-note">Firebase setup required</span>}
+      {sessionNotice && <p className="auth-session-notice" role="status">{sessionNotice}</p>}
       {currentError && (
-        <>
-          <span className="visually-hidden" aria-live="polite">{readableAuthError(currentError)}</span>
-          <p className="auth-error" role="status">{readableAuthError(currentError)}</p>
-        </>
+        <div className="auth-error" role="alert"><p>{readableAuthError(currentError)}</p><button type="button" onClick={() => { setError(null); clearAuthError(); }}>Dismiss</button></div>
       )}
     </div>
   );
