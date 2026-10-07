@@ -141,7 +141,9 @@ export function useRealtimeList(listQuery, retryKey = 0) {
       listQuery,
       (snapshot) => {
         const snapshots = [];
-        snapshot.forEach((child) => snapshots.push(child));
+        snapshot.forEach((child) => {
+          snapshots.push(child);
+        });
         setState({ snapshots, loading: false, error: null });
       },
       (error) => setState({ snapshots: [], loading: false, error }),
