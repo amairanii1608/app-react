@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { firebaseConfigured, signInWithGoogle, signOutUser, useUserState } from '../firebase.jsx';
+import { auth, firebaseConfigured, signInWithGoogle, signOutUser, useUserState } from '../firebase.jsx';
 import Icon from './Icon.jsx';
 
 function readableAuthError(error) {
@@ -13,7 +13,7 @@ function readableAuthError(error) {
     return 'Allow pop-ups and try again.';
   }
   if (error?.code === 'auth/popup-closed-by-user') return 'The sign-in window was closed.';
-  return 'Sign-in could not be completed. Try again.';
+  return `Sign-in could not be completed${error?.code ? ` (${error.code})` : ''}. Try again.`;
 }
 
 export default function AuthControl() {
@@ -23,19 +23,23 @@ export default function AuthControl() {
   const currentError = error || stateError;
   const firstName = user?.displayName?.trim().split(/\s+/)[0] || user?.email?.split('@')[0] || 'there';
   useEffect(() => {
+    if (user) setError(null);
+  }, [user]);
+  useEffect(() => {
     if (!currentError) return undefined;
     const timeout = window.setTimeout(() => { setError(null); clearAuthError(); }, 3000);
     return () => window.clearTimeout(timeout);
   }, [currentError, clearAuthError]);
 
   async function handleAuthAction() {
+    const wasSignedIn = Boolean(user);
     setBusy(true);
     setError(null);
     try {
       if (user) await signOutUser();
       else await signInWithGoogle();
     } catch (nextError) {
-      setError(nextError);
+      if (wasSignedIn || !auth?.currentUser) setError(nextError);
     } finally {
       setBusy(false);
     }

@@ -2,14 +2,11 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { getApp, getApps, initializeApp } from '@firebase/app';
 import {
   GoogleAuthProvider,
-  browserLocalPersistence,
   connectAuthEmulator,
   getAuth,
-  getRedirectResult,
   onAuthStateChanged,
   signInWithPopup,
   signOut,
-  setPersistence,
 } from '@firebase/auth';
 import {
   connectDatabaseEmulator,
@@ -23,6 +20,15 @@ import {
 const useEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true';
 const IDLE_LIMIT = 30 * 60 * 1000;
 const ACTIVITY_KEY = 'nysl:last-activity';
+function readActivity(fallback) {
+  try { return Number(localStorage.getItem(ACTIVITY_KEY)) || fallback; } catch { return fallback; }
+}
+function writeActivity(value) {
+  try { localStorage.setItem(ACTIVITY_KEY, String(value)); } catch { /* Keep inactivity tracking in memory. */ }
+}
+function clearActivity() {
+  try { localStorage.removeItem(ACTIVITY_KEY); } catch { /* Sign-out must still proceed. */ }
+}
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -73,53 +79,40 @@ export function AuthProvider({ children }) {
       return undefined;
     }
 
-    let active = true;
-    let unsubscribe;
-    setPersistence(auth, browserLocalPersistence)
-      .catch((nextError) => { if (active) setError(nextError); })
-      .finally(() => {
-        if (!active) return;
-        getRedirectResult(auth).catch((nextError) => { if (active) setError(nextError); });
-        unsubscribe = onAuthStateChanged(
-          auth,
-          (nextUser) => {
-            setUser(nextUser);
-            setError(null);
-            if (nextUser) setSessionNotice('');
-            setLoading(false);
-          },
-          (nextError) => {
-            setError(nextError);
-            setLoading(false);
-          },
-        );
-      });
-    return () => {
-      active = false;
-      unsubscribe?.();
-    };
+    return onAuthStateChanged(
+      auth,
+      (nextUser) => {
+        setUser(nextUser);
+        setError(null);
+        if (nextUser) setSessionNotice('');
+        setLoading(false);
+      },
+      (nextError) => {
+        setError(nextError);
+        setLoading(false);
+      },
+    );
   }, []);
 
   useEffect(() => {
     if (!auth || !user) return undefined;
     let lastActivity = Date.now();
     let lastWrite = 0;
-    const readActivity = () => Number(localStorage.getItem(ACTIVITY_KEY)) || lastActivity;
     const markActivity = () => {
       const now = Date.now();
       lastActivity = now;
       if (now - lastWrite > 15000) {
-        localStorage.setItem(ACTIVITY_KEY, String(now));
+        writeActivity(now);
         lastWrite = now;
       }
     };
     const checkIdle = () => {
-      if (Date.now() - readActivity() < IDLE_LIMIT) return;
-      localStorage.removeItem(ACTIVITY_KEY);
+      if (Date.now() - readActivity(lastActivity) < IDLE_LIMIT) return;
+      clearActivity();
       setSessionNotice('Your session ended after 30 minutes of inactivity. Sign in to continue.');
       signOut(auth).catch(setError);
     };
-    localStorage.setItem(ACTIVITY_KEY, String(lastActivity));
+    writeActivity(lastActivity);
     const timer = window.setInterval(checkIdle, 30000);
     ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach((event) => window.addEventListener(event, markActivity, { passive: true }));
     return () => {
@@ -171,7 +164,7 @@ export function signInWithGoogle() {
 
 export function signOutUser() {
   if (!auth) return Promise.resolve();
-  localStorage.removeItem(ACTIVITY_KEY);
+  clearActivity();
   return signOut(auth);
 }
 
