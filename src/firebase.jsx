@@ -8,7 +8,6 @@ import {
   getRedirectResult,
   onAuthStateChanged,
   signInWithPopup,
-  signInWithRedirect,
   signOut,
   setPersistence,
 } from '@firebase/auth';
@@ -74,20 +73,31 @@ export function AuthProvider({ children }) {
       return undefined;
     }
 
-    getRedirectResult(auth).catch(setError);
-    return onAuthStateChanged(
-      auth,
-      (nextUser) => {
-        setUser(nextUser);
-        setError(null);
-        if (nextUser) setSessionNotice('');
-        setLoading(false);
-      },
-      (nextError) => {
-        setError(nextError);
-        setLoading(false);
-      },
-    );
+    let active = true;
+    let unsubscribe;
+    setPersistence(auth, browserLocalPersistence)
+      .catch((nextError) => { if (active) setError(nextError); })
+      .finally(() => {
+        if (!active) return;
+        getRedirectResult(auth).catch((nextError) => { if (active) setError(nextError); });
+        unsubscribe = onAuthStateChanged(
+          auth,
+          (nextUser) => {
+            setUser(nextUser);
+            setError(null);
+            if (nextUser) setSessionNotice('');
+            setLoading(false);
+          },
+          (nextError) => {
+            setError(nextError);
+            setLoading(false);
+          },
+        );
+      });
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
   }, []);
 
   useEffect(() => {
@@ -153,17 +163,10 @@ export function useRealtimeList(listQuery, retryKey = 0) {
   return [state.snapshots, state.loading, state.error];
 }
 
-export async function signInWithGoogle() {
+export function signInWithGoogle() {
   if (!auth) throw new Error('Configure Firebase to enable sign-in.');
 
-  await setPersistence(auth, browserLocalPersistence);
-  const provider = new GoogleAuthProvider();
-  const isMobile = window.matchMedia('(max-width: 700px)').matches
-    || window.matchMedia('(display-mode: standalone)').matches
-    || navigator.standalone === true;
-
-  if (isMobile) return signInWithRedirect(auth, provider);
-  return signInWithPopup(auth, provider);
+  return signInWithPopup(auth, new GoogleAuthProvider());
 }
 
 export function signOutUser() {
