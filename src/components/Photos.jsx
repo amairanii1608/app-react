@@ -111,7 +111,6 @@ export default function Photos() {
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            capture="environment"
             onChange={(event) => {
               const nextFile = event.target.files?.[0] || null;
               setFile(nextFile);
