@@ -240,12 +240,12 @@ export default function Photos() {
               </div>
               {user && <div className="community-item-actions">
                 {picture.authorUid === user.uid ? (
-                  <button className="text-button" type="button" onClick={() => handleRemove(picture)} disabled={busyItemId === picture.id}>
+                  <button className="text-button community-action delete-action" type="button" onClick={() => handleRemove(picture)} disabled={busyItemId === picture.id}>
                     {busyItemId === picture.id ? 'Working…' : 'Delete my photo'}
                   </button>
                 ) : (
-                  <button className="text-button" type="button" onClick={() => handleReport(picture)} disabled={busyItemId === picture.id}>
-                    {busyItemId === picture.id ? 'Working…' : 'Report'}
+                  <button className="text-button community-action report-action" type="button" onClick={() => handleReport(picture)} disabled={busyItemId === picture.id}>
+                    {busyItemId === picture.id ? 'Working…' : 'Report photo'}
                   </button>
                 )}
               </div>}

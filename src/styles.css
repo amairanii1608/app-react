@@ -215,8 +215,10 @@ p, li { text-wrap: pretty; }
 .message-meta time { color: #52646a; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .own-message .message-meta time { color: #d6eadd; }
 .message-bubble p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
-.community-item-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
-.community-item-actions .text-button { min-height: 40px; font-size: .82rem; }
+.community-item-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.community-item-actions .community-action { min-height: 44px; border: 1px solid #bfd0c4; border-radius: 7px; background: #f8faf7; color: var(--green-deep); font-size: .84rem; line-height: 1.2; padding: 8px 12px; text-align: center; text-decoration: none; white-space: normal; }
+.community-item-actions .delete-action { border-color: #d9b5b0; background: #fbefed; color: #762d26; }
+.community-item-actions .community-action:hover:not(:disabled) { border-color: currentColor; background: #fff; }
 .community-item-actions .text-button:disabled { opacity: .65; cursor: wait; }
 .message-list-end { width: 1px; height: 1px; }
 .community-error { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin: 12px 0; }
@@ -332,6 +334,11 @@ p, li { text-wrap: pretty; }
   .auth-control { align-items: flex-start; min-width: 0; }
   .auth-error, .auth-session-notice { right: auto; left: 0; width: min(320px, calc(100vw - 24px)); }
   .guest-post-prompt { align-items: stretch; flex-direction: column; gap: 8px; padding: 16px; }
+  .message-item { width: min(620px, 100%); }
+  .community-item-actions { width: 100%; margin-top: 12px; }
+  .community-item-actions .community-action { width: 100%; }
+  .photo-card-caption { padding: 12px; }
+  .photo-meta time { overflow-wrap: anywhere; }
   .auth-session-label { max-width: min(52vw, 240px); font-size: .78rem; }
   .install-app-button { min-height: 44px; font-size: 1.1rem; }
   .install-control { position: relative; }

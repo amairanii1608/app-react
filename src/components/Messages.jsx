@@ -134,12 +134,12 @@ export default function Messages() {
                 <p>{message.text}</p>
                 {user && <div className="community-item-actions">
                   {message.authorUid === user.uid ? (
-                    <button className="text-button" type="button" onClick={() => handleRemove(message)} disabled={busyItemId === message.id}>
+                    <button className="text-button community-action delete-action" type="button" onClick={() => handleRemove(message)} disabled={busyItemId === message.id}>
                       {busyItemId === message.id ? 'Working…' : 'Delete my message'}
                     </button>
                   ) : (
-                    <button className="text-button" type="button" onClick={() => handleReport(message)} disabled={busyItemId === message.id}>
-                      {busyItemId === message.id ? 'Working…' : 'Report'}
+                    <button className="text-button community-action report-action" type="button" onClick={() => handleReport(message)} disabled={busyItemId === message.id}>
+                      {busyItemId === message.id ? 'Working…' : 'Report message'}
                     </button>
                   )}
                 </div>}
