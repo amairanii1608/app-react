@@ -14,6 +14,8 @@ export default function Photos() {
   const [posting, setPosting] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [feedbackError, setFeedbackError] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState('');
+  const [actionFeedbackError, setActionFeedbackError] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [uploadedAsset, setUploadedAsset] = useState(null);
   const [failedImageIds, setFailedImageIds] = useState(() => new Set());
@@ -22,6 +24,7 @@ export default function Photos() {
   const [retryKey, setRetryKey] = useState(0);
   const [busyItemId, setBusyItemId] = useState('');
   const fileInputRef = useRef(null);
+  const actionFeedbackRef = useRef(null);
   const picturesQuery = useMemo(() => (
     database
       ? query(ref(database, `pictures/${gameId}`), orderByChild('timestamp'), limitToLast(100))
@@ -36,6 +39,10 @@ export default function Photos() {
     .map((snapshot) => ({ id: snapshot.key, ...snapshot.val() }))
     .filter((picture) => !hiddenIds.has(picture.id))
     .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)), [snapshots, hiddenIds]);
+
+  useEffect(() => {
+    if (actionFeedback) actionFeedbackRef.current?.focus({ preventScroll: true });
+  }, [actionFeedback]);
 
   useEffect(() => {
     if (!pendingPictureId || !pictures.some((picture) => picture.id === pendingPictureId)) return undefined;
@@ -97,30 +104,30 @@ export default function Photos() {
   async function handleRemove(picture) {
     if (!window.confirm('Remove your photo from this gallery? The Cloudinary file may still need to be deleted manually.')) return;
     setBusyItemId(picture.id);
-    setFeedback('');
+    setActionFeedback('');
     try {
       await deleteOwnCommunityItem('pictures', gameId, picture.id, user);
-      setFeedback('Your photo was removed from the gallery. Its Cloudinary file may need manual cleanup.');
-      setFeedbackError(false);
+      setActionFeedback('Your photo was removed from the gallery. Its Cloudinary file may need manual cleanup.');
+      setActionFeedbackError(false);
     } catch {
-      setFeedback('Your photo could not be removed. Check your connection and try again.');
-      setFeedbackError(true);
+      setActionFeedback('Your photo could not be removed. Check your connection and try again.');
+      setActionFeedbackError(true);
     } finally { setBusyItemId(''); }
   }
 
   async function handleReport(picture) {
     if (!window.confirm('Report this photo? It will be hidden from the gallery while it is reviewed.')) return;
     setBusyItemId(picture.id);
-    setFeedback('');
+    setActionFeedback('');
     try {
       await reportCommunityItem('pictures', gameId, picture.id, user);
-      setFeedback('Photo reported and hidden from the gallery for review.');
-      setFeedbackError(false);
+      setActionFeedback('Photo reported and hidden from the gallery for review.');
+      setActionFeedbackError(false);
     } catch (reportError) {
-      setFeedback(reportError.message?.startsWith('Limit reached:')
+      setActionFeedback(reportError.message?.startsWith('Limit reached:')
         ? reportError.message
         : 'The photo could not be reported. You may have already reported it.');
-      setFeedbackError(true);
+      setActionFeedbackError(true);
     } finally { setBusyItemId(''); }
   }
 
@@ -133,6 +140,8 @@ export default function Photos() {
         </div>
         <span className="heading-mark"><Icon name="image-plus" size={20} /></span>
       </div>
+
+      {actionFeedback && <p ref={actionFeedbackRef} className={`community-action-status${actionFeedbackError ? ' is-error' : ''}`} tabIndex="-1" role={actionFeedbackError ? 'alert' : 'status'} aria-live={actionFeedbackError ? 'assertive' : 'polite'}>{actionFeedback}</p>}
 
       {postingEnabled ? <form className="photo-form" onSubmit={handleSubmit}>
         <div className="photo-form-heading">

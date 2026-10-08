@@ -13,9 +13,12 @@ export default function Messages() {
   const [posting, setPosting] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [feedbackError, setFeedbackError] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState('');
+  const [actionFeedbackError, setActionFeedbackError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [busyItemId, setBusyItemId] = useState('');
   const listEndRef = useRef(null);
+  const actionFeedbackRef = useRef(null);
   const shouldScrollRef = useRef(false);
   const didInitialScrollRef = useRef(false);
   const messagesQuery = useMemo(() => (
@@ -32,6 +35,10 @@ export default function Messages() {
     .map((snapshot) => ({ id: snapshot.key, ...snapshot.val() }))
     .filter((message) => !hiddenIds.has(message.id))
     .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)), [snapshots, hiddenIds]);
+
+  useEffect(() => {
+    if (actionFeedback) actionFeedbackRef.current?.focus({ preventScroll: true });
+  }, [actionFeedback]);
 
   useEffect(() => {
     if (loading || !messages.length) return;
@@ -71,30 +78,30 @@ export default function Messages() {
   async function handleRemove(message) {
     if (!window.confirm('Remove your message from this game? This cannot be undone.')) return;
     setBusyItemId(message.id);
-    setFeedback('');
+    setActionFeedback('');
     try {
       await deleteOwnCommunityItem('messages', gameId, message.id, user);
-      setFeedback('Your message was removed.');
-      setFeedbackError(false);
+      setActionFeedback('Your message was removed.');
+      setActionFeedbackError(false);
     } catch {
-      setFeedback('Your message could not be removed. Check your connection and try again.');
-      setFeedbackError(true);
+      setActionFeedback('Your message could not be removed. Check your connection and try again.');
+      setActionFeedbackError(true);
     } finally { setBusyItemId(''); }
   }
 
   async function handleReport(message) {
     if (!window.confirm('Report this message? It will be hidden while it is reviewed.')) return;
     setBusyItemId(message.id);
-    setFeedback('');
+    setActionFeedback('');
     try {
       await reportCommunityItem('messages', gameId, message.id, user);
-      setFeedback('Message reported and hidden for review.');
-      setFeedbackError(false);
+      setActionFeedback('Message reported and hidden for review.');
+      setActionFeedbackError(false);
     } catch (reportError) {
-      setFeedback(reportError.message?.startsWith('Limit reached:')
+      setActionFeedback(reportError.message?.startsWith('Limit reached:')
         ? reportError.message
         : 'The message could not be reported. You may have already reported it.');
-      setFeedbackError(true);
+      setActionFeedbackError(true);
     } finally { setBusyItemId(''); }
   }
 
@@ -107,6 +114,8 @@ export default function Messages() {
         </div>
         <span className="heading-mark"><Icon name="message-circle" size={20} /></span>
       </div>
+
+      {actionFeedback && <p ref={actionFeedbackRef} className={`community-action-status${actionFeedbackError ? ' is-error' : ''}`} tabIndex="-1" role={actionFeedbackError ? 'alert' : 'status'} aria-live={actionFeedbackError ? 'assertive' : 'polite'}>{actionFeedback}</p>}
 
       <div className="message-panel">
         {loading && <p className="state-message" role="status">Loading messages…</p>}

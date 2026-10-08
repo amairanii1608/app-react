@@ -219,7 +219,11 @@ p, li { text-wrap: pretty; }
 .community-item-actions .community-action { min-height: 44px; border: 1px solid #bfd0c4; border-radius: 7px; background: #f8faf7; color: var(--green-deep); font-size: .84rem; line-height: 1.2; padding: 8px 12px; text-align: center; text-decoration: none; white-space: normal; }
 .community-item-actions .delete-action { border-color: #d9b5b0; background: #fbefed; color: #762d26; }
 .community-item-actions .community-action:hover:not(:disabled) { border-color: currentColor; background: #fff; }
+.community-item-actions .community-action:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; box-shadow: 0 0 0 5px #fff; }
 .community-item-actions .text-button:disabled { opacity: .65; cursor: wait; }
+.community-action-status { position: sticky; z-index: 4; top: 8px; width: fit-content; max-width: 100%; margin: 0 0 12px; border: 1px solid #99b4a3; border-radius: 8px; background: #edf4ee; box-shadow: 0 4px 12px #07192324; color: #173f2d; padding: 11px 14px; }
+.community-action-status:focus { outline: 3px solid var(--green-deep); outline-offset: 3px; }
+.community-action-status.is-error { border-color: #d2a19b; background: #fbefed; color: #762d26; }
 .message-list-end { width: 1px; height: 1px; }
 .community-error { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin: 12px 0; }
 .community-error .state-message { margin: 0; }
