@@ -1,13 +1,16 @@
 import { Link, NavLink, Outlet, Navigate, useParams } from 'react-router-dom';
 import data from '../data/nysl.json';
 import Icon from './Icon.jsx';
-import { useUserState } from '../firebase.jsx';
+import { usePostingStatus, useUserState } from '../firebase.jsx';
+import { useState } from 'react';
 import { formatGameDate } from '../utilities/dates.js';
 
 export default function GameLayout() {
   const { gameId } = useParams();
   const game = data.games[gameId];
   const { user, loading } = useUserState();
+  const [postingStatusRetry, setPostingStatusRetry] = useState(0);
+  const postingStatus = usePostingStatus(user, postingStatusRetry);
 
   if (!game) return <Navigate to="/schedule" replace />;
   const location = data.locations[game.locationKey];
@@ -47,7 +50,14 @@ export default function GameLayout() {
       </nav>
       {loading && <p className="member-note" role="status">Checking your sign-in to unlock Messages and Photos…</p>}
       {!loading && !user && <p className="member-note">Read messages and photos here. Sign in to add your own.</p>}
-      <Outlet context={{ game, location, gameId }} />
+      {user && postingStatus.loading && <p className="posting-status" role="status">Checking posting access…</p>}
+      {user && postingStatus.blocked && <p className="posting-status blocked" role="status">Posting is disabled for this account. Contact league staff if you think this is a mistake.</p>}
+      {user && postingStatus.error && (
+        <p className="posting-status blocked" role="alert">
+          Posting access could not be checked. <button className="text-button" type="button" onClick={() => setPostingStatusRetry((retry) => retry + 1)}>Try again</button>
+        </p>
+      )}
+      <Outlet context={{ game, location, gameId, postingEnabled: Boolean(user && !postingStatus.loading && !postingStatus.error && !postingStatus.blocked) }} />
     </section>
   );
 }

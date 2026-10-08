@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { limitToLast, orderByChild, query, ref } from '@firebase/database';
-import { database, publishMessage, useRealtimeList, useUserState } from '../firebase.jsx';
-import { formatGameDate, formatMessageTime } from '../utilities/dates.js';
+import { database, deleteOwnCommunityItem, publishMessage, reportCommunityItem, useRealtimeList, useUserState } from '../firebase.jsx';
+import { formatDateTime, formatGameDate } from '../utilities/dates.js';
+import { formatAuthorName } from '../utilities/names.js';
 import Icon from './Icon.jsx';
 
 export default function Messages() {
-  const { game, gameId } = useOutletContext();
+  const { game, gameId, postingEnabled } = useOutletContext();
   const { user } = useUserState();
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [feedbackError, setFeedbackError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [busyItemId, setBusyItemId] = useState('');
   const listEndRef = useRef(null);
   const shouldScrollRef = useRef(false);
   const didInitialScrollRef = useRef(false);
@@ -22,10 +24,14 @@ export default function Messages() {
       : null
   ), [gameId]);
   const [snapshots, loading, error] = useRealtimeList(messagesQuery, retryKey);
+  const hiddenQuery = useMemo(() => (database ? ref(database, `moderation/hidden/messages/${gameId}`) : null), [gameId]);
+  const [hiddenSnapshots] = useRealtimeList(hiddenQuery);
+  const hiddenIds = useMemo(() => new Set(hiddenSnapshots.map((snapshot) => snapshot.key)), [hiddenSnapshots]);
 
   const messages = useMemo(() => snapshots
     .map((snapshot) => ({ id: snapshot.key, ...snapshot.val() }))
-    .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)), [snapshots]);
+    .filter((message) => !hiddenIds.has(message.id))
+    .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)), [snapshots, hiddenIds]);
 
   useEffect(() => {
     if (loading || !messages.length) return;
@@ -51,11 +57,45 @@ export default function Messages() {
       setFeedbackError(false);
     } catch (publishError) {
       shouldScrollRef.current = false;
-      setFeedback('Your message could not be posted. Check your connection and try again.');
+      setFeedback(publishError.code === 'community/blocked'
+        ? publishError.message
+        : publishError.message?.startsWith('Limit reached:')
+        ? publishError.message
+        : 'Your message could not be posted. Check your connection and try again.');
       setFeedbackError(true);
     } finally {
       setPosting(false);
     }
+  }
+
+  async function handleRemove(message) {
+    if (!window.confirm('Remove your message from this game? This cannot be undone.')) return;
+    setBusyItemId(message.id);
+    setFeedback('');
+    try {
+      await deleteOwnCommunityItem('messages', gameId, message.id, user);
+      setFeedback('Your message was removed.');
+      setFeedbackError(false);
+    } catch {
+      setFeedback('Your message could not be removed. Check your connection and try again.');
+      setFeedbackError(true);
+    } finally { setBusyItemId(''); }
+  }
+
+  async function handleReport(message) {
+    if (!window.confirm('Report this message? It will be hidden while it is reviewed.')) return;
+    setBusyItemId(message.id);
+    setFeedback('');
+    try {
+      await reportCommunityItem('messages', gameId, message.id, user);
+      setFeedback('Message reported and hidden for review.');
+      setFeedbackError(false);
+    } catch (reportError) {
+      setFeedback(reportError.message?.startsWith('Limit reached:')
+        ? reportError.message
+        : 'The message could not be reported. You may have already reported it.');
+      setFeedbackError(true);
+    } finally { setBusyItemId(''); }
   }
 
   return (
@@ -88,10 +128,21 @@ export default function Messages() {
             <li className={`message-item${message.authorUid === user?.uid ? ' own-message' : ''}`} key={message.id}>
               <article className="message-bubble">
                 <div className="message-meta">
-                <strong>{message.author || 'NYSL family'}</strong>
-                  <time>{formatMessageTime(message.timestamp)}</time>
+                <strong>{formatAuthorName(message.author)}</strong>
+                  <time>{formatDateTime(message.timestamp)}</time>
                 </div>
                 <p>{message.text}</p>
+                {user && <div className="community-item-actions">
+                  {message.authorUid === user.uid ? (
+                    <button className="text-button" type="button" onClick={() => handleRemove(message)} disabled={busyItemId === message.id}>
+                      {busyItemId === message.id ? 'Working…' : 'Delete my message'}
+                    </button>
+                  ) : (
+                    <button className="text-button" type="button" onClick={() => handleReport(message)} disabled={busyItemId === message.id}>
+                      {busyItemId === message.id ? 'Working…' : 'Report'}
+                    </button>
+                  )}
+                </div>}
               </article>
             </li>
           ))}
@@ -99,7 +150,7 @@ export default function Messages() {
         </ol>
       </div>
 
-      {user ? <form className="message-form" onSubmit={handleSubmit}>
+      {postingEnabled ? <form className="message-form" onSubmit={handleSubmit}>
         <label className="visually-hidden" htmlFor="message-input">Write a message for this game</label>
         <textarea
           id="message-input"
@@ -117,8 +168,9 @@ export default function Messages() {
             <Icon name="send" size={17} /> {posting ? 'Posting…' : 'Send'}
           </button>
         </div>
+        <p className="rate-limit-note">Five messages and photos combined per 10 minutes; up to five reports per 10 minutes.</p>
         <p className="form-feedback" role={feedbackError ? 'alert' : 'status'} aria-live={feedbackError ? 'assertive' : 'polite'}>{feedback}</p>
-      </form> : <aside className="guest-post-prompt">
+      </form> : !user && <aside className="guest-post-prompt">
         <p>Messages are visible to everyone. Sign in above to post your own.</p>
         <a className="text-link" href="#sign-in">Go to Sign in <Icon name="arrow-right" size={16} /></a>
       </aside>}

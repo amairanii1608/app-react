@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { limitToLast, orderByChild, query, ref } from '@firebase/database';
-import { cloudinaryConfigured, database, publishPicture, uploadPicture, useRealtimeList, useUserState } from '../firebase.jsx';
-import { formatGameDate, formatPhotoDate } from '../utilities/dates.js';
+import { cloudinaryConfigured, database, deleteOwnCommunityItem, publishPicture, reportCommunityItem, uploadPicture, useRealtimeList, useUserState } from '../firebase.jsx';
+import { formatDateTime, formatGameDate } from '../utilities/dates.js';
+import { formatAuthorName } from '../utilities/names.js';
 import Icon from './Icon.jsx';
 
 export default function Photos() {
-  const { game, gameId } = useOutletContext();
+  const { game, gameId, postingEnabled } = useOutletContext();
   const { user } = useUserState();
   const [file, setFile] = useState(null);
   const [caption, setCaption] = useState('');
@@ -19,6 +20,7 @@ export default function Photos() {
   const [pendingPictureId, setPendingPictureId] = useState(null);
   const [highlightedPictureId, setHighlightedPictureId] = useState(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [busyItemId, setBusyItemId] = useState('');
   const fileInputRef = useRef(null);
   const picturesQuery = useMemo(() => (
     database
@@ -26,10 +28,14 @@ export default function Photos() {
       : null
   ), [gameId]);
   const [snapshots, loading, error] = useRealtimeList(picturesQuery, retryKey);
+  const hiddenQuery = useMemo(() => (database ? ref(database, `moderation/hidden/pictures/${gameId}`) : null), [gameId]);
+  const [hiddenSnapshots] = useRealtimeList(hiddenQuery);
+  const hiddenIds = useMemo(() => new Set(hiddenSnapshots.map((snapshot) => snapshot.key)), [hiddenSnapshots]);
 
   const pictures = useMemo(() => snapshots
     .map((snapshot) => ({ id: snapshot.key, ...snapshot.val() }))
-    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)), [snapshots]);
+    .filter((picture) => !hiddenIds.has(picture.id))
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)), [snapshots, hiddenIds]);
 
   useEffect(() => {
     if (!pendingPictureId || !pictures.some((picture) => picture.id === pendingPictureId)) return undefined;
@@ -63,7 +69,7 @@ export default function Photos() {
     let uploadedUrl = uploadedAsset?.file === file ? uploadedAsset.url : '';
     try {
       if (!uploadedUrl) {
-        uploadedUrl = await uploadPicture(file);
+        uploadedUrl = await uploadPicture(file, user);
         setUploadedAsset({ file, url: uploadedUrl });
       }
       const savedPicture = await publishPicture(gameId, user, { url: uploadedUrl, caption });
@@ -75,13 +81,47 @@ export default function Photos() {
       setFeedback(`Photo added to the ${game.teams[0]} vs. ${game.teams[1]} gallery.`);
       setFeedbackError(false);
     } catch (publishError) {
-      setFeedback(uploadedUrl
-        ? 'The photo reached Cloudinary but could not be saved to the gallery. Check your connection before trying again.'
-        : 'The photo could not be uploaded. Check your connection and try again.');
+      setFeedback(publishError.code === 'community/blocked'
+        ? publishError.message
+        : publishError.message?.startsWith('Limit reached:')
+          ? publishError.message
+          : uploadedUrl
+            ? 'The photo reached Cloudinary but could not be saved to the gallery. Check your connection before trying again.'
+            : 'The photo could not be uploaded. Check your connection and try again.');
       setFeedbackError(true);
     } finally {
       setPosting(false);
     }
+  }
+
+  async function handleRemove(picture) {
+    if (!window.confirm('Remove your photo from this gallery? The Cloudinary file may still need to be deleted manually.')) return;
+    setBusyItemId(picture.id);
+    setFeedback('');
+    try {
+      await deleteOwnCommunityItem('pictures', gameId, picture.id, user);
+      setFeedback('Your photo was removed from the gallery. Its Cloudinary file may need manual cleanup.');
+      setFeedbackError(false);
+    } catch {
+      setFeedback('Your photo could not be removed. Check your connection and try again.');
+      setFeedbackError(true);
+    } finally { setBusyItemId(''); }
+  }
+
+  async function handleReport(picture) {
+    if (!window.confirm('Report this photo? It will be hidden from the gallery while it is reviewed.')) return;
+    setBusyItemId(picture.id);
+    setFeedback('');
+    try {
+      await reportCommunityItem('pictures', gameId, picture.id, user);
+      setFeedback('Photo reported and hidden from the gallery for review.');
+      setFeedbackError(false);
+    } catch (reportError) {
+      setFeedback(reportError.message?.startsWith('Limit reached:')
+        ? reportError.message
+        : 'The photo could not be reported. You may have already reported it.');
+      setFeedbackError(true);
+    } finally { setBusyItemId(''); }
   }
 
   return (
@@ -94,7 +134,7 @@ export default function Photos() {
         <span className="heading-mark"><Icon name="image-plus" size={20} /></span>
       </div>
 
-      {user ? <form className="photo-form" onSubmit={handleSubmit}>
+      {postingEnabled ? <form className="photo-form" onSubmit={handleSubmit}>
         <div className="photo-form-heading">
           <div>
             <h3>Share a moment</h3>
@@ -148,8 +188,9 @@ export default function Photos() {
             <Icon name="image-plus" size={17} /> {posting ? 'Posting…' : 'Post photo'}
           </button>
         </div>
+        <p className="rate-limit-note">Five messages and photos combined per 10 minutes; up to five reports per 10 minutes.</p>
         {!cloudinaryConfigured && <p className="setup-note">Cloudinary is not configured. See the setup guide in the project folder.</p>}
-      </form> : <aside className="guest-post-prompt">
+      </form> : !user && <aside className="guest-post-prompt">
         <p>Photos are visible to everyone. Sign in above to upload your own.</p>
         <a className="text-link" href="#sign-in">Go to Sign in <Icon name="arrow-right" size={16} /></a>
       </aside>}
@@ -186,7 +227,7 @@ export default function Photos() {
             ) : (
               <img
                 src={picture.url}
-                alt={picture.caption || `Photo shared by ${picture.author || 'an NYSL family'}`}
+                alt={picture.caption || `Photo shared by ${formatAuthorName(picture.author)}`}
                 loading="lazy"
                 onError={() => setFailedImageIds((ids) => new Set(ids).add(picture.id))}
               />
@@ -194,9 +235,20 @@ export default function Photos() {
             <div className="photo-card-caption">
               {picture.caption && <p>{picture.caption}</p>}
               <div className="photo-meta">
-                <strong>{picture.author || 'NYSL family'}</strong>
-                <time>{formatPhotoDate(picture.timestamp)}</time>
+                <strong>{formatAuthorName(picture.author)}</strong>
+                <time>{formatDateTime(picture.timestamp)}</time>
               </div>
+              {user && <div className="community-item-actions">
+                {picture.authorUid === user.uid ? (
+                  <button className="text-button" type="button" onClick={() => handleRemove(picture)} disabled={busyItemId === picture.id}>
+                    {busyItemId === picture.id ? 'Working…' : 'Delete my photo'}
+                  </button>
+                ) : (
+                  <button className="text-button" type="button" onClick={() => handleReport(picture)} disabled={busyItemId === picture.id}>
+                    {busyItemId === picture.id ? 'Working…' : 'Report'}
+                  </button>
+                )}
+              </div>}
             </div>
           </article>
         ))}

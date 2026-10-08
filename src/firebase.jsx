@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { getApp, getApps, initializeApp } from '@firebase/app';
+import { formatAuthorName } from './utilities/names.js';
+import { consumeCommunityLimit } from './utilities/communityLimits.js';
 import {
   GoogleAuthProvider,
   connectAuthEmulator,
@@ -10,10 +12,13 @@ import {
 } from '@firebase/auth';
 import {
   connectDatabaseEmulator,
+  get,
   getDatabase,
   onValue,
   push,
+  remove,
   ref,
+  set,
   serverTimestamp,
 } from '@firebase/database';
 
@@ -130,6 +135,38 @@ export function AuthProvider({ children }) {
 
 export const useUserState = () => useContext(AuthContext);
 
+export function usePostingStatus(user, retryKey = 0) {
+  const [status, setStatus] = useState({ uid: null, blocked: false, loading: false, error: null });
+
+  useEffect(() => {
+    if (!database || !user) {
+      setStatus({ uid: null, blocked: false, loading: false, error: null });
+      return undefined;
+    }
+
+    setStatus({ uid: user.uid, blocked: false, loading: true, error: null });
+    return onValue(
+      ref(database, `blockedUsers/${user.uid}`),
+      (snapshot) => setStatus({ uid: user.uid, blocked: snapshot.val() === true, loading: false, error: null }),
+      (error) => setStatus({ uid: user.uid, blocked: false, loading: false, error }),
+    );
+  }, [user?.uid, retryKey]);
+
+  return user?.uid === status.uid
+    ? status
+    : { blocked: false, loading: Boolean(database && user), error: null };
+}
+
+async function assertPostingAllowed(user) {
+  if (!database || !user) throw new Error('Sign in to post.');
+  const snapshot = await get(ref(database, `blockedUsers/${user.uid}`));
+  if (snapshot.val() === true) {
+    const error = new Error('Posting is disabled for this account. Contact league staff if you think this is a mistake.');
+    error.code = 'community/blocked';
+    throw error;
+  }
+}
+
 export function useRealtimeList(listQuery, retryKey = 0) {
   const [state, setState] = useState({ snapshots: [], loading: Boolean(listQuery), error: null });
 
@@ -169,13 +206,16 @@ export function signOutUser() {
 }
 
 export function getAuthorName(user) {
-  return (user?.displayName || user?.email?.split('@')[0] || 'NYSL user').slice(0, 80);
+  return formatAuthorName(user?.displayName || user?.email?.split('@')[0]);
 }
 
 export async function publishMessage(gameId, user, text) {
   if (!database || !user) throw new Error('Sign in to post.');
   const cleanText = text.trim();
   if (!cleanText || cleanText.length > 500) throw new Error('Messages must be between 1 and 500 characters.');
+
+  await assertPostingAllowed(user);
+  consumeCommunityLimit(user.uid, 'post');
 
   return push(ref(database, `messages/${gameId}`), {
     authorUid: user.uid,
@@ -185,16 +225,20 @@ export async function publishMessage(gameId, user, text) {
   });
 }
 
-export async function uploadPicture(file) {
+export async function uploadPicture(file, user) {
+  if (!user) throw new Error('Sign in to post photos.');
   if (!cloudinaryConfigured) throw new Error('Configure Cloudinary to enable photo uploads.');
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file?.type)) {
     throw new Error('Choose a JPG, PNG, or WebP image.');
   }
   if (file.size > 10 * 1024 * 1024) throw new Error('The image must be 10 MB or smaller.');
 
+  await assertPostingAllowed(user);
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+
+  consumeCommunityLimit(user.uid, 'post');
 
   const response = await fetch(
     `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`,
@@ -216,6 +260,7 @@ export async function publishPicture(gameId, user, picture) {
     throw new Error('A valid Cloudinary URL was not found.');
   }
 
+  await assertPostingAllowed(user);
   return push(ref(database, `pictures/${gameId}`), {
     authorUid: user.uid,
     author: getAuthorName(user),
@@ -223,6 +268,40 @@ export async function publishPicture(gameId, user, picture) {
     caption: picture.caption.trim().slice(0, 160),
     timestamp: serverTimestamp(),
   });
+}
+
+export async function deleteOwnCommunityItem(type, gameId, itemId, user) {
+  if (!database || !user) throw new Error('Sign in to remove your content.');
+  if (!['messages', 'pictures'].includes(type) || !gameId || !itemId) {
+    throw new Error('This item could not be identified.');
+  }
+
+  return remove(ref(database, `${type}/${gameId}/${itemId}`));
+}
+
+export async function reportCommunityItem(type, gameId, itemId, user) {
+  if (!database || !user) throw new Error('Sign in to report content.');
+  if (!['messages', 'pictures'].includes(type) || !gameId || !itemId) {
+    throw new Error('This item could not be identified.');
+  }
+
+  consumeCommunityLimit(user.uid, 'report');
+  const reportRef = ref(database, `moderation/reports/${type}/${gameId}/${itemId}/${user.uid}`);
+  await set(reportRef, {
+    reason: 'community_guidelines',
+    createdAt: serverTimestamp(),
+    status: 'pending',
+  });
+
+  const hiddenRef = ref(database, `moderation/hidden/${type}/${gameId}/${itemId}`);
+  const hidden = await get(hiddenRef);
+  if (!hidden.exists()) {
+    try {
+      await set(hiddenRef, true);
+    } catch (error) {
+      if (!(await get(hiddenRef)).exists()) throw error;
+    }
+  }
 }
 
 export async function publishRegistration(user, registration) {

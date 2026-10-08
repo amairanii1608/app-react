@@ -11,15 +11,7 @@ function toValidDate(timestamp) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function formatMessageTime(timestamp) {
-  if (typeof timestamp !== 'number') return 'Now';
-  const date = toValidDate(timestamp);
-  if (!date) return 'Time unavailable';
-  return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' })
-    .format(date);
-}
-
-export function formatPhotoDate(timestamp) {
+export function formatDateTime(timestamp) {
   if (typeof timestamp !== 'number') return 'Now';
   const date = toValidDate(timestamp);
   if (!date) return 'Date unavailable';
