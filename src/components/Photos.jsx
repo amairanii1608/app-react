@@ -197,7 +197,7 @@ export default function Photos() {
             <Icon name="image-plus" size={17} /> {posting ? 'Posting…' : 'Post photo'}
           </button>
         </div>
-        <p className="rate-limit-note">Five messages and photos combined per 10 minutes; up to five reports per 10 minutes.</p>
+        <p className="rate-limit-note">Up to five messages and photos combined every 30 seconds; up to two reports every 10 seconds.</p>
         {!cloudinaryConfigured && <p className="setup-note">Cloudinary is not configured. See the setup guide in the project folder.</p>}
       </form> : !user && <aside className="guest-post-prompt">
         <p>Photos are visible to everyone. Sign in above to upload your own.</p>

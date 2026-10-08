@@ -10,13 +10,16 @@ globalThis.localStorage = {
 
 beforeEach(() => values.clear());
 
-test('allows five combined posts and blocks the sixth within ten minutes', () => {
+test('allows five combined posts and blocks the sixth within thirty seconds', () => {
   for (let attempt = 0; attempt < 5; attempt += 1) consumeCommunityLimit('family-1', 'post', attempt * 1000);
   assert.throws(() => consumeCommunityLimit('family-1', 'post', 5000), /Limit reached/);
 });
 
-test('expires attempts after ten minutes and separates reports from posts', () => {
+test('expires posts after thirty seconds and keeps report limits separate', () => {
   for (let attempt = 0; attempt < 5; attempt += 1) consumeCommunityLimit('family-1', 'post', attempt * 1000);
-  consumeCommunityLimit('family-1', 'post', 10 * 60 * 1000);
+  consumeCommunityLimit('family-1', 'post', 34000);
   consumeCommunityLimit('family-1', 'report', 5000);
+  consumeCommunityLimit('family-1', 'report', 6000);
+  assert.throws(() => consumeCommunityLimit('family-1', 'report', 7000), /up to 2 reports every 10 seconds/);
+  consumeCommunityLimit('family-1', 'report', 16000);
 });

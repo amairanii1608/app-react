@@ -1,5 +1,7 @@
-const WINDOW_MS = 10 * 60 * 1000;
-const MAX_ACTIONS = 5;
+const LIMITS = {
+  post: { max: 5, windowMs: 30 * 1000, label: 'messages and photos', windowLabel: '30 seconds' },
+  report: { max: 2, windowMs: 10 * 1000, label: 'reports', windowLabel: '10 seconds' },
+};
 const memoryLimits = new Map();
 
 function storageKey(uid, action) {
@@ -21,13 +23,15 @@ function saveAttempts(key, attempts) {
 }
 
 export function consumeCommunityLimit(uid, action, now = Date.now()) {
+  const limit = LIMITS[action];
+  if (!limit) throw new Error('Unknown community action.');
+
   const key = storageKey(uid, action);
-  const recentAttempts = readAttempts(key).filter((timestamp) => now - timestamp < WINDOW_MS);
-  if (recentAttempts.length >= MAX_ACTIONS) {
-    const retryAfterMs = Math.max(0, WINDOW_MS - (now - recentAttempts[0]));
-    const retryMinutes = Math.max(1, Math.ceil(retryAfterMs / 60000));
-    const actionLabel = action === 'report' ? 'reports' : 'messages and photos';
-    throw new Error(`Limit reached: up to 5 ${actionLabel} every 10 minutes. Try again in ${retryMinutes} minute${retryMinutes === 1 ? '' : 's'}.`);
+  const recentAttempts = readAttempts(key).filter((timestamp) => now - timestamp < limit.windowMs);
+  if (recentAttempts.length >= limit.max) {
+    const retryAfterMs = Math.max(0, limit.windowMs - (now - recentAttempts[0]));
+    const retryAfterSeconds = Math.max(1, Math.ceil(retryAfterMs / 1000));
+    throw new Error(`Limit reached: up to ${limit.max} ${limit.label} every ${limit.windowLabel}. Try again in ${retryAfterSeconds} second${retryAfterSeconds === 1 ? '' : 's'}.`);
   }
 
   saveAttempts(key, [...recentAttempts, now]);

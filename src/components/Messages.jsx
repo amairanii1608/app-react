@@ -177,7 +177,7 @@ export default function Messages() {
             <Icon name="send" size={17} /> {posting ? 'Posting…' : 'Send'}
           </button>
         </div>
-        <p className="rate-limit-note">Five messages and photos combined per 10 minutes; up to five reports per 10 minutes.</p>
+        <p className="rate-limit-note">Up to five messages and photos combined every 30 seconds; up to two reports every 10 seconds.</p>
         <p className="form-feedback" role={feedbackError ? 'alert' : 'status'} aria-live={feedbackError ? 'assertive' : 'polite'}>{feedback}</p>
       </form> : !user && <aside className="guest-post-prompt">
         <p>Messages are visible to everyone. Sign in above to post your own.</p>
